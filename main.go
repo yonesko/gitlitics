@@ -1,12 +1,18 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"github.com/fatih/color"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/transport/http"
+	"github.com/go-git/go-git/v5/storage/memory"
 	"github.com/rodaine/table"
 	"github.com/samber/lo"
+	"os"
 	"sort"
+	"strings"
 )
 
 var fileStatFilter = func(fs object.FileStat) bool {
@@ -31,11 +37,24 @@ var authorFunc = func(fs object.Signature) string {
 	return fs.Name
 }
 
-func main() {
-	directory := "/Users/gdanichev/GolandProjects/simona/delta/price-reconciliation-service.git"
-	//directory := os.Args[1]
+var url = flag.String("url", "", "example: https://gitlab.int.tsum.com/preowned/simona/delta/customer-service.git")
 
-	statByAuthor := analyzeRepo(directory)
+func main() {
+	flag.Usage = func() {
+		fmt.Println("Use GITLAB_USER and GITLAB_PASSWORD for auth")
+		flag.PrintDefaults()
+	}
+	flag.Parse()
+	if strings.TrimSpace(lo.FromPtr(url)) == "" {
+		flag.Usage()
+		os.Exit(1)
+	}
+
+	repository := lo.Must(git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
+		URL:  *url,
+		Auth: &http.BasicAuth{Username: os.Getenv("GITLAB_USER"), Password: os.Getenv("GITLAB_PASSWORD")},
+	}))
+	statByAuthor := analyzeRepo(repository)
 
 	tabl := table.New("author", "commits", "total", "additions", "deletions")
 	tabl.WithHeaderFormatter(color.New(color.FgGreen, color.Underline).SprintfFunc()).
@@ -57,14 +76,19 @@ type stat struct {
 	additions int
 	deletions int
 	commits   []*object.Commit
+	//TODO time period
 }
 
 func (s stat) total() int {
 	return s.additions + s.deletions
 }
 
-func analyzeRepo(directory string) map[string]stat {
-	repository := lo.Must(git.PlainOpen(directory))
+/*
+	r, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
+	    URL: "https://github.com/go-git/go-billy",
+	})
+*/
+func analyzeRepo(repository *git.Repository) map[string]stat {
 	commitIter := lo.Must(repository.CommitObjects())
 	defer commitIter.Close()
 
