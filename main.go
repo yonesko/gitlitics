@@ -19,6 +19,7 @@ var fileStatFilter = func(fs object.FileStat) bool {
 	return true
 }
 
+// TODO to config file
 var authorFunc = func(fs object.Signature) string {
 	switch fs.Name {
 	case "gdanichev", "Глеб", "Глеб Данчев":
