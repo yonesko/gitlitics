@@ -1,4 +1,4 @@
-module github.com/yonesko/gitlitics.git
+module github.com/yonesko/gitlitics
 
 go 1.21.1
 
