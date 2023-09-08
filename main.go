@@ -11,6 +11,7 @@ import (
 	"github.com/rodaine/table"
 	"github.com/samber/lo"
 	"os"
+	"path"
 	"sort"
 	"strings"
 )
@@ -57,7 +58,7 @@ func main() {
 	}))
 	statByAuthor := analyzeRepo(repository)
 
-	tabl := table.New("author", "commits", "total", "additions", "deletions")
+	tabl := table.New(path.Base(*url)+":", " author", "commits", "total", "additions", "deletions")
 	tabl.WithHeaderFormatter(color.New(color.FgGreen, color.Underline).SprintfFunc()).
 		WithFirstColumnFormatter(color.New(color.FgYellow).SprintfFunc())
 
@@ -68,7 +69,7 @@ func main() {
 
 	for _, author := range authors {
 		st := statByAuthor[author]
-		tabl.AddRow(author, len(st.commits), st.total(), st.additions, st.deletions)
+		tabl.AddRow("", author, len(st.commits), st.total(), st.additions, st.deletions)
 	}
 	tabl.Print()
 }
