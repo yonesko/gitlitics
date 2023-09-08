@@ -14,7 +14,7 @@ var fileStatFilter = func(fs object.FileStat) bool {
 }
 
 var authorFunc = func(fs object.Signature) string {
-	return fs.Email
+	return fs.Name
 }
 
 func main() {
