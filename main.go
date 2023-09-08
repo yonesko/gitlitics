@@ -14,6 +14,20 @@ var fileStatFilter = func(fs object.FileStat) bool {
 }
 
 var authorFunc = func(fs object.Signature) string {
+	switch fs.Name {
+	case "gdanichev", "Глеб", "Глеб Данчев":
+		return "Глеб Данчев"
+	case "Evgeny Nazarov", "Евгений Назаров":
+		return "Евгений Назаров"
+	case "sagadzhanov", "Сергей Агаджанов":
+		return "Сергей Агаджанов"
+	case "Edgar Sipki", "Эдгар Сипки":
+		return "Эдгар Сипки"
+	case "sbaronenkov", "Сергей Бароненков":
+		return "Сергей Бароненков"
+	case "Daniil Guzanov", "Даниил Гузанов":
+		return "Даниил Гузанов"
+	}
 	return fs.Name
 }
 
