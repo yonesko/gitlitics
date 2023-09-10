@@ -67,7 +67,7 @@ func main() {
 		repository := lo.Must(git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
 			RecurseSubmodules: git.NoRecurseSubmodules,
 			URL:               url,
-			Auth:              &http.BasicAuth{Username: os.Getenv("GITLAB_USER"), Password: os.Getenv("GITLAB_PASSWORD")},
+			Auth:              &http.BasicAuth{Username: os.Getenv("USER"), Password: os.Getenv("PASSWORD")},
 		}))
 		statByAuthor := analyzeRepoByAuthor(repository)
 
