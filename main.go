@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/go-git/go-git/v5"
@@ -10,6 +9,7 @@ import (
 	"github.com/go-git/go-git/v5/storage/memory"
 	"github.com/rodaine/table"
 	"github.com/samber/lo"
+	"log"
 	"os"
 	"path"
 	"sort"
@@ -21,40 +21,31 @@ var fileStatFilter = func(fs object.FileStat) bool {
 	return strings.HasSuffix(fs.Name, ".go")
 }
 
-// TODO to config file
 var authorFunc = func(fs object.Signature) string {
-	switch fs.Name {
-	case "gdanichev", "Глеб", "Глеб Данчев":
-		return "Глеб Данчев"
-	case "Evgeny Nazarov", "Евгений Назаров":
-		return "Евгений Назаров"
-	case "sagadzhanov", "Сергей Агаджанов":
-		return "Сергей Агаджанов"
-	case "Edgar Sipki", "Эдгар Сипки":
-		return "Эдгар Сипки"
-	case "sbaronenkov", "Сергей Бароненков":
-		return "Сергей Бароненков"
-	case "Daniil Guzanov", "Даниил Гузанов":
-		return "Даниил Гузанов"
-	}
 	return fs.Name
 }
 
-var urls = flag.String("urls", "", "example: https://gitlab.int.tsum.com/preowned/simona/delta/customer-service.git, comma-separated")
-
 func main() {
-	flag.Usage = func() {
-		fmt.Println("Use GITLAB_USER and GITLAB_PASSWORD for auth")
-		flag.PrintDefaults()
+	conf, err := parseConfig()
+	if err != nil {
+		log.Fatal("parseConfig:", err)
 	}
-	flag.Parse()
-	if strings.TrimSpace(lo.FromPtr(urls)) == "" {
-		flag.Usage()
-		os.Exit(1)
+	authorFunc = func(fs object.Signature) string {
+		key := fs.Name
+		if conf.Author.Key == "mail" {
+			key = fs.Email
+		}
+
+		for mainName, duplicates := range conf.Author.Duplicates {
+			if key == mainName || lo.Contains(duplicates, key) {
+				return mainName
+			}
+		}
+		return key
 	}
 
 	statsByAuthor := map[string]stat{}
-	for _, url := range strings.Split(*urls, ",") {
+	for _, url := range conf.Paths {
 		repository := lo.Must(git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
 			URL:  url,
 			Auth: &http.BasicAuth{Username: os.Getenv("GITLAB_USER"), Password: os.Getenv("GITLAB_PASSWORD")},
@@ -79,18 +70,20 @@ func main() {
 	}
 
 	//totals results
-	tabl := table.New(fmt.Sprintf("%30s:", "TOTAL"), " author", "commits", "total", "additions", "deletions", "days", "additions/day")
-	tabl.WithHeaderFormatter(color.New(color.FgGreen, color.Underline).SprintfFunc()).
-		WithFirstColumnFormatter(color.New(color.FgYellow).SprintfFunc())
-	authors := lo.Keys(statsByAuthor)
-	sort.Slice(authors, func(i, j int) bool {
-		return statsByAuthor[authors[i]].additionsPerDay() > statsByAuthor[authors[j]].additionsPerDay()
-	})
-	for _, author := range authors {
-		st := statsByAuthor[author]
-		tabl.AddRow("", st.author, len(st.commits), st.total(), st.additions, st.deletions, len(st.days), st.additionsPerDay())
+	if len(statsByAuthor) != 0 {
+		tabl := table.New(fmt.Sprintf("%30s:", "TOTAL"), " author", "commits", "total", "additions", "deletions", "days", "additions/day")
+		tabl.WithHeaderFormatter(color.New(color.FgGreen, color.Underline).SprintfFunc()).
+			WithFirstColumnFormatter(color.New(color.FgYellow).SprintfFunc())
+		authors := lo.Keys(statsByAuthor)
+		sort.Slice(authors, func(i, j int) bool {
+			return statsByAuthor[authors[i]].additionsPerDay() > statsByAuthor[authors[j]].additionsPerDay()
+		})
+		for _, author := range authors {
+			st := statsByAuthor[author]
+			tabl.AddRow("", st.author, len(st.commits), st.total(), st.additions, st.deletions, len(st.days), st.additionsPerDay())
+		}
+		tabl.Print()
 	}
-	tabl.Print()
 }
 
 type stat struct {
