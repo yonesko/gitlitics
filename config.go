@@ -18,7 +18,7 @@ type config struct {
 }
 
 type filesConf struct {
-	IncludeRe string `yaml:"files"`
+	IncludeRe string `yaml:"includeRe"`
 }
 type authorConfig struct {
 	Key        string              `yaml:"key" validate:"oneof=name mail" default:"name"`
