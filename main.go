@@ -71,6 +71,8 @@ func main() {
 	totalStatsByAuthor := map[string]stat{}
 	for _, url := range conf.Paths {
 		repository := lo.Must(git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
+			ReferenceName:     "master",
+			SingleBranch:      true,
 			RecurseSubmodules: git.NoRecurseSubmodules,
 			URL:               url,
 			Auth:              &http.BasicAuth{Username: os.Getenv("USER"), Password: os.Getenv("PASSWORD")},
@@ -92,6 +94,10 @@ func main() {
 			tabl.AddRow("", author, len(st.commits), st.total(), st.additions, st.deletions, len(st.days), st.additionsPerDay())
 		}
 		tabl.Print()
+
+		//largestCommits(lo.Flatten(lo.Values(lo.MapValues(statByAuthor, func(value stat, _ string) []*object.Commit {
+		//	return value.commits
+		//}))))
 	}
 
 	//totals results
@@ -106,18 +112,19 @@ func main() {
 		for _, author := range authors {
 			st := totalStatsByAuthor[author]
 			tabl.AddRow("", st.author, len(st.commits), st.total(), st.additions, st.deletions, len(st.days), st.additionsPerDay())
-
-			//days := lo.Keys(st.days)
-			//
-			//sort.Slice(days, func(i, j int) bool {
-			//	return days[i].Before(days[j])
-			//})
-			//print(author)
-			//fmt.Printf("days='%+v'\n", days)
 		}
 		tabl.Print()
 	}
 }
+
+//func largestCommits(commits []*object.Commit) {
+//	slices.SortFunc(commits, func(a, b *object.Commit) bool {
+//		a1, _ := statSum(a)
+//		b1, _ := statSum(b)
+//		return a1 > b1
+//	})
+//	fmt.Printf("commits[:len(commits)/10]='%+v'\n", commits[:len(commits)/10])
+//}
 
 type stat struct {
 	additions int
