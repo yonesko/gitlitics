@@ -58,7 +58,7 @@ func main() {
 			URL:  url,
 			Auth: &http.BasicAuth{Username: os.Getenv("GITLAB_USER"), Password: os.Getenv("GITLAB_PASSWORD")},
 		}))
-		statByAuthor := analyzeRepo(repository)
+		statByAuthor := analyzeRepoByAuthor(repository)
 
 		tabl := table.New(path.Base(url)+":", " author", "commits", "total", "additions", "deletions", "days", "additions/day")
 		tabl.WithHeaderFormatter(color.New(color.FgGreen, color.Underline).SprintfFunc()).
@@ -100,7 +100,7 @@ func (s stat) total() int {
 	return s.additions + s.deletions
 }
 
-func analyzeRepo(repository *git.Repository) map[string]stat {
+func analyzeRepoByAuthor(repository *git.Repository) map[string]stat {
 	commitIter := lo.Must(repository.CommitObjects())
 	defer commitIter.Close()
 
