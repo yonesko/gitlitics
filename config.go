@@ -26,7 +26,7 @@ var configPath = flag.String("conf", "gitlitics.yml", "path to config")
 
 func parseConfig() (config, error) {
 	flag.Usage = func() {
-		fmt.Println("Use GITLAB_USER and GITLAB_PASSWORD for auth")
+		fmt.Println("Use USER and PASSWORD for Git auth")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
