@@ -1,7 +1,7 @@
 paths:
   - https://gitlab.com/some/group/project.git
 author:
-  key: email #email,name
+  key: mail #mail,name
   duplicates: #sometimes one person signed by different names
     John: [ john, jon ]
 
