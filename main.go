@@ -40,6 +40,9 @@ func main() {
 	}
 
 	fileStatFilter = func(fs object.FileStat) bool {
+		if fileStatRe == nil {
+			return true
+		}
 		return fileStatRe.MatchString(fs.Name)
 	}
 	authorFunc = func(fs object.Signature) string {
