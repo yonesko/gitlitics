@@ -18,7 +18,8 @@ import (
 	"unicode/utf8"
 )
 
-var fileStatRe *regexp.Regexp
+var includeFileNameRe *regexp.Regexp
+var excludeFileNameRe *regexp.Regexp
 var fileStatFilter = func(fs object.FileStat) bool {
 	return true
 }
@@ -33,17 +34,22 @@ func main() {
 		log.Fatal("parseConfig:", err)
 	}
 	if conf.Files.IncludeRe != "" {
-		fileStatRe, err = regexp.Compile(conf.Files.IncludeRe)
+		includeFileNameRe, err = regexp.Compile(conf.Files.IncludeRe)
 		if err != nil {
 			log.Fatalf("can't parse Files.IncludeRe %q: %s", conf.Files.IncludeRe, err)
 		}
 	}
+	if conf.Files.ExcludeRe != "" {
+		excludeFileNameRe, err = regexp.Compile(conf.Files.ExcludeRe)
+		if err != nil {
+			log.Fatalf("can't parse Files.ExcludeRe %q: %s", conf.Files.ExcludeRe, err)
+		}
+	}
 
 	fileStatFilter = func(fs object.FileStat) bool {
-		if fileStatRe == nil {
-			return true
-		}
-		return fileStatRe.MatchString(fs.Name)
+		included := includeFileNameRe == nil || includeFileNameRe.MatchString(fs.Name)
+		excluded := excludeFileNameRe != nil && excludeFileNameRe.MatchString(fs.Name)
+		return included && !excluded
 	}
 	authorFunc = func(fs object.Signature) string {
 		key := fs.Name

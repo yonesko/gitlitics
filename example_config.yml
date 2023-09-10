@@ -6,3 +6,4 @@ author:
     John: [ john, jon ]
 files:
   includeRe: '' ##leave empty for all files
+  excludeRe: ''
