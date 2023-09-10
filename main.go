@@ -14,6 +14,7 @@ import (
 	"path"
 	"sort"
 	"strings"
+	"time"
 )
 
 var fileStatFilter = func(fs object.FileStat) bool {
@@ -58,7 +59,7 @@ func main() {
 	}))
 	statByAuthor := analyzeRepo(repository)
 
-	tabl := table.New(path.Base(*url)+":", " author", "commits", "total", "additions", "deletions")
+	tabl := table.New(path.Base(*url)+":", " author", "commits", "total", "additions", "deletions", "days", "additions/day")
 	tabl.WithHeaderFormatter(color.New(color.FgGreen, color.Underline).SprintfFunc()).
 		WithFirstColumnFormatter(color.New(color.FgYellow).SprintfFunc())
 
@@ -69,7 +70,7 @@ func main() {
 
 	for _, author := range authors {
 		st := statByAuthor[author]
-		tabl.AddRow("", author, len(st.commits), st.total(), st.additions, st.deletions)
+		tabl.AddRow("", author, len(st.commits), st.total(), st.additions, st.deletions, len(st.days), st.additions/len(st.days))
 	}
 	tabl.Print()
 }
@@ -78,18 +79,25 @@ type stat struct {
 	additions int
 	deletions int
 	commits   []*object.Commit
-	//TODO time period
+	days      map[time.Time]bool
+}
+
+func newStat(commits []*object.Commit) stat {
+	var additions, deletions int
+	days := map[time.Time]bool{}
+	for _, c := range commits {
+		a, d := statSum(c)
+		additions += a
+		deletions += d
+		days[c.Author.When.Truncate(24*time.Hour)] = true
+	}
+	return stat{additions: additions, deletions: deletions, commits: commits, days: days}
 }
 
 func (s stat) total() int {
 	return s.additions + s.deletions
 }
 
-/*
-	r, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
-	    URL: "https://github.com/go-git/go-billy",
-	})
-*/
 func analyzeRepo(repository *git.Repository) map[string]stat {
 	commitIter := lo.Must(repository.CommitObjects())
 	defer commitIter.Close()
@@ -102,20 +110,10 @@ func analyzeRepo(repository *git.Repository) map[string]stat {
 	}))
 
 	return lo.MapValues(commitsByAuthor, func(commits []*object.Commit, _ string) stat {
-		a, d := statsSum(commits)
-		return stat{additions: a, deletions: d, commits: commits}
+		return newStat(commits)
 	})
 }
 
-func statsSum(commits []*object.Commit) (int, int) {
-	var additions, deletions int
-	for _, c := range commits {
-		a, d := statSum(c)
-		additions += a
-		deletions += d
-	}
-	return additions, deletions
-}
 func statSum(commit *object.Commit) (int, int) {
 	fileStats := lo.Must(commit.Stats())
 
