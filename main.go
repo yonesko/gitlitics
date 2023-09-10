@@ -125,6 +125,9 @@ func newStat(commits []*object.Commit, author string) stat {
 	var additions, deletions int
 	days := map[time.Time]bool{}
 	for _, c := range commits {
+		if c.NumParents() != 1 {
+			continue
+		}
 		a, d := statSum(c)
 		additions += a
 		deletions += d
