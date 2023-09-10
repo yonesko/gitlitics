@@ -15,6 +15,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 var fileStatFilter = func(fs object.FileStat) bool {
@@ -44,6 +45,9 @@ func main() {
 		return key
 	}
 
+	maxPathLen := lo.Max(lo.Map(conf.Paths, func(item string, _ int) int {
+		return utf8.RuneCountInString(path.Base(item))
+	}))
 	statsByAuthor := map[string]stat{}
 	for _, url := range conf.Paths {
 		repository := lo.Must(git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
@@ -52,7 +56,7 @@ func main() {
 		}))
 		statByAuthor := analyzeRepoByAuthor(repository)
 
-		tabl := table.New(fmt.Sprintf("%30s:", path.Base(url)), " author", "commits", "total", "additions", "deletions", "days", "additions/day")
+		tabl := table.New(fmt.Sprintf("%*s:", maxPathLen, path.Base(url)), " author", "commits", "total", "additions", "deletions", "days", "additions/day")
 		tabl.WithHeaderFormatter(color.New(color.FgGreen, color.Underline).SprintfFunc()).
 			WithFirstColumnFormatter(color.New(color.FgYellow).SprintfFunc())
 
@@ -71,7 +75,7 @@ func main() {
 
 	//totals results
 	if len(statsByAuthor) != 0 {
-		tabl := table.New(fmt.Sprintf("%30s:", "TOTAL"), " author", "commits", "total", "additions", "deletions", "days", "additions/day")
+		tabl := table.New(fmt.Sprintf("%*s:", maxPathLen, "TOTAL"), " author", "commits", "total", "additions", "deletions", "days", "additions/day")
 		tabl.WithHeaderFormatter(color.New(color.FgGreen, color.Underline).SprintfFunc()).
 			WithFirstColumnFormatter(color.New(color.FgYellow).SprintfFunc())
 		authors := lo.Keys(statsByAuthor)
