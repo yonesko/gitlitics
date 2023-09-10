@@ -5,4 +5,4 @@ author:
   duplicates: #sometimes one person signed by different names
     John: [ john, jon ]
 files:
-  includeRe: ''
+  includeRe: '' ##leave empty for all files
