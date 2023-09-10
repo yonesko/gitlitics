@@ -82,9 +82,10 @@ type stat struct {
 	deletions int
 	commits   []*object.Commit
 	days      map[time.Time]bool
+	author    string
 }
 
-func newStat(commits []*object.Commit) stat {
+func newStat(commits []*object.Commit, author string) stat {
 	var additions, deletions int
 	days := map[time.Time]bool{}
 	for _, c := range commits {
@@ -93,7 +94,7 @@ func newStat(commits []*object.Commit) stat {
 		deletions += d
 		days[c.Author.When.Truncate(24*time.Hour)] = true
 	}
-	return stat{additions: additions, deletions: deletions, commits: commits, days: days}
+	return stat{additions: additions, deletions: deletions, commits: commits, days: days, author: author}
 }
 
 func (s stat) total() int {
@@ -111,8 +112,8 @@ func analyzeRepoByAuthor(repository *git.Repository) map[string]stat {
 		return nil
 	}))
 
-	return lo.MapValues(commitsByAuthor, func(commits []*object.Commit, _ string) stat {
-		return newStat(commits)
+	return lo.MapValues(commitsByAuthor, func(commits []*object.Commit, author string) stat {
+		return newStat(commits, author)
 	})
 }
 
