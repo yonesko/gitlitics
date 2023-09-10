@@ -62,7 +62,7 @@ func main() {
 	maxPathLen := lo.Max(lo.Map(conf.Paths, func(item string, _ int) int {
 		return utf8.RuneCountInString(path.Base(item))
 	}))
-	statsByAuthor := map[string]stat{}
+	totalStatsByAuthor := map[string]stat{}
 	for _, url := range conf.Paths {
 		repository := lo.Must(git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
 			RecurseSubmodules: git.NoRecurseSubmodules,
@@ -82,27 +82,29 @@ func main() {
 
 		for _, author := range authors {
 			st := statByAuthor[author]
-			statsByAuthor[author] = st.aggregate(statsByAuthor[author])
+			totalStatsByAuthor[author] = st.aggregate(totalStatsByAuthor[author])
 			tabl.AddRow("", author, len(st.commits), st.total(), st.additions, st.deletions, len(st.days), st.additionsPerDay())
 		}
 		tabl.Print()
 	}
 
 	//totals results
-	if len(statsByAuthor) != 0 {
+	if len(totalStatsByAuthor) != 0 {
 		tabl := table.New(fmt.Sprintf("%*s:", maxPathLen, "TOTAL"), " author", "commits", "total", "additions", "deletions", "days", "additions/day")
 		tabl.WithHeaderFormatter(color.New(color.FgGreen, color.Underline).SprintfFunc()).
 			WithFirstColumnFormatter(color.New(color.FgYellow).SprintfFunc())
-		authors := lo.Keys(statsByAuthor)
+		authors := lo.Keys(totalStatsByAuthor)
 		sort.Slice(authors, func(i, j int) bool {
-			return statsByAuthor[authors[i]].additionsPerDay() > statsByAuthor[authors[j]].additionsPerDay()
+			return totalStatsByAuthor[authors[i]].additionsPerDay() > totalStatsByAuthor[authors[j]].additionsPerDay()
 		})
 		for _, author := range authors {
-			st := statsByAuthor[author]
+			st := totalStatsByAuthor[author]
 			tabl.AddRow("", st.author, len(st.commits), st.total(), st.additions, st.deletions, len(st.days), st.additionsPerDay())
 		}
 		tabl.Print()
 	}
+	//largest commits
+
 }
 
 type stat struct {
