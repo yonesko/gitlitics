@@ -106,11 +106,17 @@ func main() {
 		for _, author := range authors {
 			st := totalStatsByAuthor[author]
 			tabl.AddRow("", st.author, len(st.commits), st.total(), st.additions, st.deletions, len(st.days), st.additionsPerDay())
+
+			//days := lo.Keys(st.days)
+			//
+			//sort.Slice(days, func(i, j int) bool {
+			//	return days[i].Before(days[j])
+			//})
+			//print(author)
+			//fmt.Printf("days='%+v'\n", days)
 		}
 		tabl.Print()
 	}
-	//largest commits
-
 }
 
 type stat struct {
@@ -131,7 +137,7 @@ func newStat(commits []*object.Commit, author string) stat {
 		a, d := statSum(c)
 		additions += a
 		deletions += d
-		days[c.Author.When.Truncate(24*time.Hour)] = true
+		days[c.Author.When.Round(0).UTC().Truncate(24*time.Hour)] = true
 	}
 	return stat{additions: additions, deletions: deletions, commits: commits, days: days, author: author}
 }
