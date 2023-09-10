@@ -61,13 +61,13 @@ func main() {
 		}))
 		statByAuthor := analyzeRepoByAuthor(repository)
 
-		tabl := table.New(path.Base(url)+":", " author", "commits", "total", "additions", "deletions", "days", "additions/day")
+		tabl := table.New(fmt.Sprintf("%30s:", path.Base(url)), " author", "commits", "total", "additions", "deletions", "days", "additions/day")
 		tabl.WithHeaderFormatter(color.New(color.FgGreen, color.Underline).SprintfFunc()).
 			WithFirstColumnFormatter(color.New(color.FgYellow).SprintfFunc())
 
 		authors := lo.Keys(statByAuthor)
 		sort.Slice(authors, func(i, j int) bool {
-			return statByAuthor[authors[i]].total() > statByAuthor[authors[j]].total()
+			return statByAuthor[authors[i]].additionsPerDay() > statByAuthor[authors[j]].additionsPerDay()
 		})
 
 		for _, author := range authors {
@@ -79,10 +79,15 @@ func main() {
 	}
 
 	//totals results
-	tabl := table.New("TOTAL:", " author", "commits", "total", "additions", "deletions", "days", "additions/day")
+	tabl := table.New(fmt.Sprintf("%30s:", "TOTAL"), " author", "commits", "total", "additions", "deletions", "days", "additions/day")
 	tabl.WithHeaderFormatter(color.New(color.FgGreen, color.Underline).SprintfFunc()).
 		WithFirstColumnFormatter(color.New(color.FgYellow).SprintfFunc())
-	for _, st := range statsByAuthor {
+	authors := lo.Keys(statsByAuthor)
+	sort.Slice(authors, func(i, j int) bool {
+		return statsByAuthor[authors[i]].additionsPerDay() > statsByAuthor[authors[j]].additionsPerDay()
+	})
+	for _, author := range authors {
+		st := statsByAuthor[author]
 		tabl.AddRow("", st.author, len(st.commits), st.total(), st.additions, st.deletions, len(st.days), st.additionsPerDay())
 	}
 	tabl.Print()
