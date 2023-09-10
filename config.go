@@ -14,8 +14,12 @@ import (
 type config struct {
 	Paths  []string     `yaml:"paths"`
 	Author authorConfig `yaml:"author"`
+	Files  filesConf    `yaml:"files"`
 }
 
+type filesConf struct {
+	IncludeRe string `yaml:"files"`
+}
 type authorConfig struct {
 	Key        string              `yaml:"key" validate:"oneof=name mail" default:"name"`
 	Duplicates map[string][]string `yaml:"duplicates"`

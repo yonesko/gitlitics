@@ -12,14 +12,15 @@ import (
 	"log"
 	"os"
 	"path"
+	"regexp"
 	"sort"
-	"strings"
 	"time"
 	"unicode/utf8"
 )
 
+var fileStatRe *regexp.Regexp
 var fileStatFilter = func(fs object.FileStat) bool {
-	return strings.HasSuffix(fs.Name, ".go")
+	return true
 }
 
 var authorFunc = func(fs object.Signature) string {
@@ -30,6 +31,16 @@ func main() {
 	conf, err := parseConfig()
 	if err != nil {
 		log.Fatal("parseConfig:", err)
+	}
+	if conf.Files.IncludeRe != "" {
+		fileStatRe, err = regexp.Compile(conf.Files.IncludeRe)
+		if err != nil {
+			log.Fatalf("can't parse Files.IncludeRe %q: %s", conf.Files.IncludeRe, err)
+		}
+	}
+
+	fileStatFilter = func(fs object.FileStat) bool {
+		return fileStatRe.MatchString(fs.Name)
 	}
 	authorFunc = func(fs object.Signature) string {
 		key := fs.Name
@@ -51,8 +62,9 @@ func main() {
 	statsByAuthor := map[string]stat{}
 	for _, url := range conf.Paths {
 		repository := lo.Must(git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
-			URL:  url,
-			Auth: &http.BasicAuth{Username: os.Getenv("GITLAB_USER"), Password: os.Getenv("GITLAB_PASSWORD")},
+			RecurseSubmodules: git.NoRecurseSubmodules,
+			URL:               url,
+			Auth:              &http.BasicAuth{Username: os.Getenv("GITLAB_USER"), Password: os.Getenv("GITLAB_PASSWORD")},
 		}))
 		statByAuthor := analyzeRepoByAuthor(repository)
 
