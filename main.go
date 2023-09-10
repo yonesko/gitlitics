@@ -18,7 +18,7 @@ import (
 )
 
 var fileStatFilter = func(fs object.FileStat) bool {
-	return true
+	return strings.HasSuffix(fs.Name, ".go")
 }
 
 // TODO to config file
@@ -40,7 +40,7 @@ var authorFunc = func(fs object.Signature) string {
 	return fs.Name
 }
 
-var url = flag.String("url", "", "example: https://gitlab.int.tsum.com/preowned/simona/delta/customer-service.git")
+var urls = flag.String("urls", "", "example: https://gitlab.int.tsum.com/preowned/simona/delta/customer-service.git, comma-separated")
 
 func main() {
 	flag.Usage = func() {
@@ -48,31 +48,33 @@ func main() {
 		flag.PrintDefaults()
 	}
 	flag.Parse()
-	if strings.TrimSpace(lo.FromPtr(url)) == "" {
+	if strings.TrimSpace(lo.FromPtr(urls)) == "" {
 		flag.Usage()
 		os.Exit(1)
 	}
 
-	repository := lo.Must(git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
-		URL:  *url,
-		Auth: &http.BasicAuth{Username: os.Getenv("GITLAB_USER"), Password: os.Getenv("GITLAB_PASSWORD")},
-	}))
-	statByAuthor := analyzeRepo(repository)
+	for _, url := range strings.Split(*urls, ",") {
+		repository := lo.Must(git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
+			URL:  url,
+			Auth: &http.BasicAuth{Username: os.Getenv("GITLAB_USER"), Password: os.Getenv("GITLAB_PASSWORD")},
+		}))
+		statByAuthor := analyzeRepo(repository)
 
-	tabl := table.New(path.Base(*url)+":", " author", "commits", "total", "additions", "deletions", "days", "additions/day")
-	tabl.WithHeaderFormatter(color.New(color.FgGreen, color.Underline).SprintfFunc()).
-		WithFirstColumnFormatter(color.New(color.FgYellow).SprintfFunc())
+		tabl := table.New(path.Base(url)+":", " author", "commits", "total", "additions", "deletions", "days", "additions/day")
+		tabl.WithHeaderFormatter(color.New(color.FgGreen, color.Underline).SprintfFunc()).
+			WithFirstColumnFormatter(color.New(color.FgYellow).SprintfFunc())
 
-	authors := lo.Keys(statByAuthor)
-	sort.Slice(authors, func(i, j int) bool {
-		return statByAuthor[authors[i]].total() > statByAuthor[authors[j]].total()
-	})
+		authors := lo.Keys(statByAuthor)
+		sort.Slice(authors, func(i, j int) bool {
+			return statByAuthor[authors[i]].total() > statByAuthor[authors[j]].total()
+		})
 
-	for _, author := range authors {
-		st := statByAuthor[author]
-		tabl.AddRow("", author, len(st.commits), st.total(), st.additions, st.deletions, len(st.days), st.additions/len(st.days))
+		for _, author := range authors {
+			st := statByAuthor[author]
+			tabl.AddRow("", author, len(st.commits), st.total(), st.additions, st.deletions, len(st.days), st.additions/len(st.days))
+		}
+		tabl.Print()
 	}
-	tabl.Print()
 }
 
 type stat struct {
