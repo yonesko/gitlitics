@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"flag"
+	"fmt"
 	"github.com/creasty/defaults"
 	"github.com/go-playground/validator/v10"
 	"gopkg.in/yaml.v3"
@@ -24,6 +25,10 @@ var paths = flag.String("paths", "", "example: https://gitlab.int.tsum.com/preow
 var configPath = flag.String("conf", "gitlitics.yml", "path to config")
 
 func parseConfig() (config, error) {
+	flag.Usage = func() {
+		fmt.Println("Use GITLAB_USER and GITLAB_PASSWORD for auth")
+		flag.PrintDefaults()
+	}
 	flag.Parse()
 
 	bytes, err := os.ReadFile(*configPath)
