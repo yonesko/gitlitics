@@ -53,6 +53,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	statsByAuthor := map[string]stat{}
 	for _, url := range strings.Split(*urls, ",") {
 		repository := lo.Must(git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
 			URL:  url,
@@ -71,10 +72,20 @@ func main() {
 
 		for _, author := range authors {
 			st := statByAuthor[author]
-			tabl.AddRow("", author, len(st.commits), st.total(), st.additions, st.deletions, len(st.days), st.additions/len(st.days))
+			statsByAuthor[author] = st.aggregate(statsByAuthor[author])
+			tabl.AddRow("", author, len(st.commits), st.total(), st.additions, st.deletions, len(st.days), st.additionsPerDay())
 		}
 		tabl.Print()
 	}
+
+	//totals results
+	tabl := table.New("TOTAL:", " author", "commits", "total", "additions", "deletions", "days", "additions/day")
+	tabl.WithHeaderFormatter(color.New(color.FgGreen, color.Underline).SprintfFunc()).
+		WithFirstColumnFormatter(color.New(color.FgYellow).SprintfFunc())
+	for _, st := range statsByAuthor {
+		tabl.AddRow("", st.author, len(st.commits), st.total(), st.additions, st.deletions, len(st.days), st.additionsPerDay())
+	}
+	tabl.Print()
 }
 
 type stat struct {
@@ -97,8 +108,24 @@ func newStat(commits []*object.Commit, author string) stat {
 	return stat{additions: additions, deletions: deletions, commits: commits, days: days, author: author}
 }
 
+func (s stat) additionsPerDay() int {
+	return s.additions / len(s.days)
+}
+
 func (s stat) total() int {
 	return s.additions + s.deletions
+}
+
+func (s stat) aggregate(other stat) stat {
+	return stat{
+		additions: s.additions + other.additions,
+		deletions: s.deletions + other.deletions,
+		commits:   append(s.commits, other.commits...),
+		days: lo.SliceToMap(append(lo.Keys(s.days), lo.Keys(other.days)...), func(day time.Time) (time.Time, bool) {
+			return day, true
+		}),
+		author: s.author,
+	}
 }
 
 func analyzeRepoByAuthor(repository *git.Repository) map[string]stat {
