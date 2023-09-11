@@ -102,7 +102,8 @@ func main() {
 
 	//totals results
 	if len(totalStatsByAuthor) != 0 {
-		tabl := table.New(fmt.Sprintf("%*s:", maxPathLen, "TOTAL"), "author", "commits", "total", "additions", "deletions", "days")
+		tabl := table.New(fmt.Sprintf("%*s:", maxPathLen, "TOTAL"), "author", "commits", "total", "additions", "deletions",
+			"first commit", "days", "velocity")
 		tabl.WithHeaderFormatter(color.New(color.FgGreen, color.Underline).SprintfFunc()).
 			WithFirstColumnFormatter(color.New(color.FgYellow).SprintfFunc())
 		authors := lo.Keys(totalStatsByAuthor)
@@ -111,7 +112,12 @@ func main() {
 		})
 		for _, author := range authors {
 			st := totalStatsByAuthor[author]
-			tabl.AddRow("", st.author, len(st.commits), st.total(), st.additions, st.deletions, len(st.days))
+			firstCommit := lo.MinBy(st.commits, func(a *object.Commit, b *object.Commit) bool {
+				return a.Author.When.Before(b.Author.When)
+			})
+			tabl.AddRow("", st.author, len(st.commits), st.total(), st.additions, st.deletions,
+				firstCommit.Author.When.Format("2006-01-02"),
+				len(st.days), st.additions/int(time.Since(firstCommit.Author.When).Hours()/24))
 		}
 		tabl.Print()
 	}
