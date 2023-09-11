@@ -79,19 +79,19 @@ func main() {
 		}))
 		statByAuthor := analyzeRepoByAuthor(repository)
 
-		tabl := table.New(fmt.Sprintf("%*s:", maxPathLen, path.Base(url)), " author", "commits", "total", "additions", "deletions", "days", "additions/day")
+		tabl := table.New(fmt.Sprintf("%*s:", maxPathLen, path.Base(url)), "author", "commits", "total", "additions", "deletions", "days")
 		tabl.WithHeaderFormatter(color.New(color.FgGreen, color.Underline).SprintfFunc()).
 			WithFirstColumnFormatter(color.New(color.FgYellow).SprintfFunc())
 
 		authors := lo.Keys(statByAuthor)
 		sort.Slice(authors, func(i, j int) bool {
-			return statByAuthor[authors[i]].additionsPerDay() > statByAuthor[authors[j]].additionsPerDay()
+			return statByAuthor[authors[i]].total() > statByAuthor[authors[j]].total()
 		})
 
 		for _, author := range authors {
 			st := statByAuthor[author]
 			totalStatsByAuthor[author] = st.aggregate(totalStatsByAuthor[author])
-			tabl.AddRow("", author, len(st.commits), st.total(), st.additions, st.deletions, len(st.days), st.additionsPerDay())
+			tabl.AddRow("", author, len(st.commits), st.total(), st.additions, st.deletions, len(st.days))
 		}
 		tabl.Print()
 
@@ -102,16 +102,16 @@ func main() {
 
 	//totals results
 	if len(totalStatsByAuthor) != 0 {
-		tabl := table.New(fmt.Sprintf("%*s:", maxPathLen, "TOTAL"), " author", "commits", "total", "additions", "deletions", "days", "additions/day")
+		tabl := table.New(fmt.Sprintf("%*s:", maxPathLen, "TOTAL"), "author", "commits", "total", "additions", "deletions", "days")
 		tabl.WithHeaderFormatter(color.New(color.FgGreen, color.Underline).SprintfFunc()).
 			WithFirstColumnFormatter(color.New(color.FgYellow).SprintfFunc())
 		authors := lo.Keys(totalStatsByAuthor)
 		sort.Slice(authors, func(i, j int) bool {
-			return totalStatsByAuthor[authors[i]].additionsPerDay() > totalStatsByAuthor[authors[j]].additionsPerDay()
+			return totalStatsByAuthor[authors[i]].total() > totalStatsByAuthor[authors[j]].total()
 		})
 		for _, author := range authors {
 			st := totalStatsByAuthor[author]
-			tabl.AddRow("", st.author, len(st.commits), st.total(), st.additions, st.deletions, len(st.days), st.additionsPerDay())
+			tabl.AddRow("", st.author, len(st.commits), st.total(), st.additions, st.deletions, len(st.days))
 		}
 		tabl.Print()
 	}
